@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>India States Map - Leaflet</title>
+    <title>Govt Jobs Live on Map</title>
 
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
     <!-- Bootstrap CSS -->
@@ -132,7 +132,7 @@
 
             // Fetch job data using AJAX
             $.ajax({
-                url: `/src/jbl.json`,  // Adjust the URL as needed
+                url: `https://sudheerneo.github.io/govt-jobs-live/src/jbl.json`,  // Adjust the URL as needed
                 dataType: 'json',
                 success: function (data) {
                     // Process and display job data
@@ -195,7 +195,7 @@
 
         // Load GeoJSON data and add it to the map
         function loadGeoJsonData() {
-            fetch('/src/map/ind.geojson')  // Adjust the URL as needed
+            fetch('https://sudheerneo.github.io/govt-jobs-live/src/ind.geojson')  // Adjust the URL as needed
                 .then(response => response.json())
                 .then(data => {
                     L.geoJSON(data, {
