@@ -1,3 +1,4 @@
+<?php ?>
 <!DOCTYPE html>
 <html lang="en">
 
@@ -19,6 +20,7 @@
         }
 
         body {
+            height: 100vh;
             /* overflow: hidden; */
             /* Hide scrollbars */
             background-color: transparent;
@@ -106,7 +108,6 @@
     <script>
 
 
-        // var map = L.map('map').setView([20.5937, 78.9629], 5);  // Center on India
         // Initialize the map without zoom and pan features
         var map = L.map('map', {
             // zoomControl: false,
@@ -128,23 +129,22 @@
 
         // Store job data
         var jobData = {};
-        const jsonUrl = $('.screenPointer').text(); +
 
-            // Fetch job data using AJAX
-            $.ajax({
-                url: `https://sudheerneo.github.io/govt-jobs-live/src/jbl.json`,  // Adjust the URL as needed
-                dataType: 'json',
-                success: function (data) {
-                    // Process and display job data
-                    jobData = data;
-                    loadGeoJsonData();
+        // Fetch job data using AJAX
+        $.ajax({
+            url: `${window.location.origin}/src/jbl.json`,  // Adjust the URL as needed
+            dataType: 'json',
+            success: function (data) {
+                // Process and display job data
+                jobData = data;
+                loadGeoJsonData();
 
-                },
-                error: function (jqXHR, textStatus, errorThrown) {
-                    console.error('Error fetching data:', textStatus, errorThrown);
-                    // Handle errors appropriately, e.g., display an error message to the user
-                }
-            });
+            },
+            error: function (jqXHR, textStatus, errorThrown) {
+                console.error('Error fetching data:', textStatus, errorThrown);
+                // Handle errors appropriately, e.g., display an error message to the user
+            }
+        });
 
 
 
@@ -166,10 +166,13 @@
         function createPopupContent(stateName, jobDetails) {
             if (jobDetails && jobDetails.jobs && jobDetails.jobs.length > 0) {
                 return '<b>' + stateName + '</b><br>' + jobDetails.jobs.map((job, index) => {
+                    if (job === "noData") {
+                        return 'No jobs available now.';
+                    }
                     return `<a href="#" class="job-title" data-job-id="${index}">${job.postNameTitle}</a>`;
                 }).join('<br>');
             } else {
-                return '<b>' + stateName + '</b><br>No job data available.';
+                return '<b>' + stateName + '</b><br>No jobs available now.';
             }
         }
 
@@ -190,12 +193,18 @@
 
                 // Show the modal
                 $('#jobModal').modal('show');
+                $('tr:contains("Download Mobile App")').remove();
+                $('tr:contains("Buy Current Affairs Book (ENGLISH MEDIUM)")').remove();
+                $('tr:contains("Join Telegram Channel")').remove();
+                $('tr:contains("Join Whats App Channel")').remove();
+
+
             }
         });
 
         // Load GeoJSON data and add it to the map
         function loadGeoJsonData() {
-            fetch('https://sudheerneo.github.io/govt-jobs-live/src/ind.geojson')  // Adjust the URL as needed
+            fetch(`${window.location.origin}/src/ind.geojson`)  // Adjust the URL as needed
                 .then(response => response.json())
                 .then(data => {
                     L.geoJSON(data, {
@@ -215,9 +224,14 @@
                                 const jobDetails = getJobDetailsByState(stateName);
                                 const popupContent = createPopupContent(stateName, jobDetails);
 
+
+
                                 // Safely check if jobDetails and jobDetails.jobs exist
                                 if (jobData[feature.properties.name]) {
 
+                                    var center = layer.getBounds().getCenter();  // Get the center of the polygon
+                                    var numberOfJobs = jobData[feature.properties.name][0] === "noData" ? 0 : jobData[feature.properties.name].length
+                                    var marker = L.marker(center).addTo(map); // Create a marker at the center of the polygon
 
                                     // Define default and highlight styles
                                     const defaultStyle = {
@@ -264,7 +278,7 @@
                                     layer.on('mouseover', function (e) {
                                         // Bind the popup to the layer with autoPan disabled
                                         layer.bindPopup(popupContent, {
-                                            autoPan: false, // Disable auto panning when showing the popup
+                                            autoPan: true, // Disable auto panning when showing the popup
                                             maxWidth: 500,
                                             maxHieght: '100%'
                                         }).openPopup(e.latlng); // Open the popup at the event's lat/lng
@@ -276,13 +290,6 @@
 
 
                                     // Add RTO code as a label on the map using a marker with a label (tooltip)
-                                    var center = layer.getBounds().getCenter();  // Get the center of the polygon
-
-
-                                    var numberOfJobs = jobData[feature.properties.name][0] === "noData" ? 0 : jobData[feature.properties.name].length
-                                    var stateCode = feature.properties.name || feature.properties.name
-                                    // Create a marker at the center of the polygon
-                                    var marker = L.marker(center).addTo(map);
 
                                     // Create a tooltip to display the state code and number of jobs
                                     // marker.bindTooltip('<b>' + feature.properties.name + '<br>' + jobDetails.numberOfJobs + '</b>', {
@@ -300,10 +307,10 @@
                                         className: 'jobs-label', // Custom class for styling
                                     }).openTooltip();
 
-                                    marker.bindTooltip('<b>' + stateCode + '</b>', {
+                                    marker.bindTooltip('<b>' + feature.properties.name + '</b>', {
                                         permanent: true,    // Show the label permanently
                                         direction: 'center', // Display the label above the marker
-                                        offset: [-15, 40],  // Adjust the position of the label relative to the marker
+                                        offset: [-15, 30],  // Adjust the position of the label relative to the marker
                                         className: 'statename-label', // Custom class for styling
                                     }).openTooltip();
                                 }
