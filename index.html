@@ -107,6 +107,9 @@
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script>
 
+        const fullUrl = `${window.location.protocol}//${window.location.host}${window.location.pathname}`;
+        console.log(fullUrl); // Full URL of the current page
+
 
         // Initialize the map without zoom and pan features
         var map = L.map('map', {
@@ -132,7 +135,7 @@
 
         // Fetch job data using AJAX
         $.ajax({
-            url: `${window.location.origin}/src/jbl.json`,  // Adjust the URL as needed
+            url: `${fullUrl}/src/jbl.json`,  // Adjust the URL as needed
             dataType: 'json',
             success: function (data) {
                 // Process and display job data
@@ -204,7 +207,7 @@
 
         // Load GeoJSON data and add it to the map
         function loadGeoJsonData() {
-            fetch(`${window.location.origin}/src/ind.geojson`)  // Adjust the URL as needed
+            fetch(`${fullUrl}/src/ind.geojson`)  // Adjust the URL as needed
                 .then(response => response.json())
                 .then(data => {
                     L.geoJSON(data, {
