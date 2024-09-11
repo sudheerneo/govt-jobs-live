@@ -109,12 +109,12 @@
         // var map = L.map('map').setView([20.5937, 78.9629], 5);  // Center on India
         // Initialize the map without zoom and pan features
         var map = L.map('map', {
-            zoomControl: false,
-            dragging: false,
-            doubleClickZoom: false,
-            scrollWheelZoom: false,
-            touchZoom: false,
-            autoPan: false,
+            // zoomControl: false,
+            // dragging: false,
+            // doubleClickZoom: false,
+            // scrollWheelZoom: false,
+            // touchZoom: false,
+            // autoPan: false,
             // zoomSnap: 0.1
         }).setView([20.5937, 78.9629], 5);  // Center on India
 
@@ -255,7 +255,7 @@
 
                                     // Bind the popup to the layer with autoPan disabled
                                     layer.bindPopup(popupContent, {
-                                        autoPan: false, // Disable auto panning when showing the popup
+                                        autoPan: true, // Disable auto panning when showing the popup
                                         maxWidth: 500,
                                         maxHeight: '100%'
                                     });
