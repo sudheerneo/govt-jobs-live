@@ -1,0 +1,340 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>India States Map - Leaflet</title>
+
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet"
+        integrity="sha384-1BmE4kWBq78iYhFldvKuhfTAU6auU8tT94WrHftjDbrCEXSU1oBoqyl2QvZ6jIW3" crossorigin="anonymous">
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"
+        integrity="sha256-/xUj+3OJU5yExlq6GSYGSHk7tPXikynS7ogEvDej/m4=" crossorigin="anonymous"></script>  
+    <style>
+        #map {
+            height: 100vh;
+            width: 100%;
+        }
+
+        body {
+            /* overflow: hidden; */
+            /* Hide scrollbars */
+            background-color: transparent;
+
+        }
+
+
+
+        .leaflet-container {
+            background: transparent !important;
+
+        }
+
+        a {
+            text-decoration: none;
+        }
+
+
+        .state-label-tooltip {
+            border-radius: 20px;
+            /* padding: 5px; */
+            font-weight: bold;
+            font-size: 10px;
+            line-height: 1.5;
+            color: rgb(244, 248, 248);
+            /* box-shadow: 0 2px 2px 3px #262726; */
+            min-width: 100px;
+            text-align: center;
+            background: rgb(2, 0, 36);
+            background: linear-gradient(90deg, rgba(2, 0, 36, 1) 0%, rgba(9, 9, 121, 1) 35%, rgba(0, 212, 255, 1) 100%);
+
+        }
+
+        .jobs-label {
+            background-color: #3388FF;
+            border: 0 solid transparent;
+            -webkit-box-shadow: none;
+            -moz-box-shadow: none;
+            box-shadow: none;
+            color: white;
+            font-size: 15px;
+            text-shadow: 1px solid black;
+            padding: 0;
+        }
+
+        .statename-label {
+            font-size: 10px;
+            padding: 3px;
+            background-color: transparent;
+            border: 0 solid transparent;
+            -webkit-box-shadow: none;
+            -moz-box-shadow: none;
+            box-shadow: none;
+
+
+        }
+    </style>
+</head>
+
+<body>
+    <div id="map"></div>
+    <!-- Bootstrap Modal -->
+    <div class="modal fade" id="jobModal" tabindex="-1" aria-labelledby="jobModalLabel" aria-hidden="true">
+        <div class="modal-dialog" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="jobModalLabel">Job Title</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body" id="jobModalContent">
+                    <!-- Job contentHtml will be injected here -->
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="d-none">
+        <p class="screenPointer">{{jsonUrl}}</p>
+    </div>
+    <!-- Leaflet JS -->
+    <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script>
+
+
+        // var map = L.map('map').setView([20.5937, 78.9629], 5);  // Center on India
+        // Initialize the map without zoom and pan features
+        var map = L.map('map', {
+            zoomControl: false,
+            dragging: false,
+            doubleClickZoom: false,
+            scrollWheelZoom: false,
+            touchZoom: false,
+            autoPan: false,
+            // zoomSnap: 0.1
+        }).setView([20.5937, 78.9629], 5);  // Center on India
+
+
+
+        // Add a tile layer
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '© OpenStreetMap contributors'
+        }).addTo(map);
+
+
+        // Store job data
+        var jobData = {};
+        const jsonUrl = $('.screenPointer').text(); +
+
+            // Fetch job data using AJAX
+            $.ajax({
+                url: `/src/jbl.json`,  // Adjust the URL as needed
+                dataType: 'json',
+                success: function (data) {
+                    // Process and display job data
+                    jobData = data;
+                    loadGeoJsonData();
+
+                },
+                error: function (jqXHR, textStatus, errorThrown) {
+                    console.error('Error fetching data:', textStatus, errorThrown);
+                    // Handle errors appropriately, e.g., display an error message to the user
+                }
+            });
+
+
+
+        // Function to get job details by state name
+        function getJobDetailsByState(stateName) {
+            const jobs = jobData[stateName];
+            if (!jobs) {
+                return { numberOfJobs: 0 };
+            }
+            return {
+                numberOfJobs: jobs.length,
+                jobs: jobs,
+
+            };
+        }
+
+
+
+        function createPopupContent(stateName, jobDetails) {
+            if (jobDetails && jobDetails.jobs && jobDetails.jobs.length > 0) {
+                return '<b>' + stateName + '</b><br>' + jobDetails.jobs.map((job, index) => {
+                    return `<a href="#" class="job-title" data-job-id="${index}">${job.postNameTitle}</a>`;
+                }).join('<br>');
+            } else {
+                return '<b>' + stateName + '</b><br>No job data available.';
+            }
+        }
+
+        // Handle click on job titles inside the popup
+        $(document).on('click', '.job-title', function (e) {
+            e.preventDefault();
+
+            const jobId = $(this).data('job-id');
+            const stateName = $(this).closest('.leaflet-popup-content').find('b').text();
+            const jobDetails = getJobDetailsByState(stateName);
+
+            if (jobDetails && jobDetails.jobs[jobId]) {
+                const job = jobDetails.jobs[jobId];
+
+                // Update modal content
+                $('#jobModalLabel').text(job.postNameTitle);  // Modal title
+                $('#jobModalContent').html(job.contentHtml);  // Modal content
+
+                // Show the modal
+                $('#jobModal').modal('show');
+            }
+        });
+
+        // Load GeoJSON data and add it to the map
+        function loadGeoJsonData() {
+            fetch('/src/map/ind.geojson')  // Adjust the URL as needed
+                .then(response => response.json())
+                .then(data => {
+                    L.geoJSON(data, {
+                        filter: function (feature) {
+                            return feature.geometry.type === 'Polygon' || feature.geometry.type === 'MultiPolygon';
+                        },
+                        style: function (feature) {
+                            return {
+                                color: getRandomColor(),
+                                weight: 2,
+                                fillOpacity: .7
+                            };
+                        },
+                        onEachFeature: function (feature, layer) {
+                            if (feature.geometry.type === 'Polygon' || feature.geometry.type === 'MultiPolygon') {
+                                const stateName = feature.properties.name;
+                                const jobDetails = getJobDetailsByState(stateName);
+                                const popupContent = createPopupContent(stateName, jobDetails);
+
+                                // Safely check if jobDetails and jobDetails.jobs exist
+                                if (jobData[feature.properties.name]) {
+
+
+                                    // Define default and highlight styles
+                                    const defaultStyle = {
+                                        color: getRandomColor(),
+                                        weight: 2,
+                                        fillOpacity: .7
+                                    };
+
+                                    const highlightStyle = {
+                                        color: '#FF0000', // Highlight border color (e.g., dark red)
+                                        weight: 4,        // Highlight border width
+                                        fillOpacity: 0.5  // Highlight fill opacity
+                                    };
+
+                                    // Function to reset the style
+                                    function resetHighlight(e) {
+                                        const layer = e.target;
+                                        layer.setStyle(defaultStyle);
+                                    }
+
+                                    // Function to highlight the feature
+                                    function highlightFeature(e) {
+                                        const layer = e.target;
+                                        layer.setStyle(highlightStyle);
+                                    }
+
+                                    // Add event listeners to the layer
+                                    layer.on({
+                                        mouseover: highlightFeature,
+                                        mouseout: resetHighlight,
+                                        click: function (e) {
+                                            // Optionally, you can add code here for handling clicks
+                                        }
+                                    });
+
+                                    // Bind the popup to the layer with autoPan disabled
+                                    layer.bindPopup(popupContent, {
+                                        autoPan: false, // Disable auto panning when showing the popup
+                                        maxWidth: 500,
+                                        maxHeight: '100%'
+                                    });
+
+                                    // Trigger popup on hover (mouseover)
+                                    layer.on('mouseover', function (e) {
+                                        // Bind the popup to the layer with autoPan disabled
+                                        layer.bindPopup(popupContent, {
+                                            autoPan: false, // Disable auto panning when showing the popup
+                                            maxWidth: 500,
+                                            maxHieght: '100%'
+                                        }).openPopup(e.latlng); // Open the popup at the event's lat/lng
+                                    });
+
+
+                                    // Bind popup with state name and number of jobs
+                                    // layer.bindPopup(popupContent);
+                                    // layer.bindPopup(feature.properties.ref);
+
+
+                                    // Add RTO code as a label on the map using a marker with a label (tooltip)
+                                    var center = layer.getBounds().getCenter();  // Get the center of the polygon
+
+
+                                    var numberOfJobs = jobData[feature.properties.name][0] === "noData" ? 0 : jobData[feature.properties.name].length
+                                    var stateCode = feature.properties.name || feature.properties.name
+                                    // Create a marker at the center of the polygon
+                                    var marker = L.marker(center).addTo(map);
+
+                                    // Create a tooltip to display the state code and number of jobs
+                                    // marker.bindTooltip('<b>' + feature.properties.name + '<br>' + jobDetails.numberOfJobs + '</b>', {
+                                    //     permanent: true,    // Show the label permanently
+                                    //     direction: 'center', // Display the label above the marker
+                                    //     className: 'state-label-tooltip', // Custom class for styling
+                                    //     offset: [-15, -33]  // Adjust the position of the label relative to the marker
+                                    // }).openTooltip();
+                                    // Create a tooltip to display the state code and number of jobs
+
+                                    marker.bindTooltip('<b>' + (numberOfJobs) + '</b>', {
+                                        permanent: true,    // Show the label permanently
+                                        direction: 'center', // Display the label above the marker
+                                        offset: [-15, 0],  // Adjust the position of the label relative to the marker
+                                        className: 'jobs-label', // Custom class for styling
+                                    }).openTooltip();
+
+                                    marker.bindTooltip('<b>' + stateCode + '</b>', {
+                                        permanent: true,    // Show the label permanently
+                                        direction: 'center', // Display the label above the marker
+                                        offset: [-15, 40],  // Adjust the position of the label relative to the marker
+                                        className: 'statename-label', // Custom class for styling
+                                    }).openTooltip();
+                                }
+
+                            }
+                        }
+                    }).addTo(map);
+                });
+        }
+
+        // Function to generate random colors
+        const usedColors = [];
+
+        function getRandomColor() {
+            let color;
+            do {
+                // Generate random color
+                color = '#' + Math.floor(Math.random() * 16777215).toString(16).padStart(6, '0');
+            } while (usedColors.includes(color) || color === '#000000' || color === '#FFFFFF');
+
+            usedColors.push(color);
+            return color;
+        }
+    </script>
+
+    <!-- Option 1: Bootstrap Bundle with Popper -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"
+        integrity="sha384-ka7Sk0Gln4gmtz2MlQnikT1wXgYsOg+OMhuP+IlRH9sENBO0LRn5q+8nbTov4+1p"
+        crossorigin="anonymous"></script>
+
+</body>
+
+</html>
