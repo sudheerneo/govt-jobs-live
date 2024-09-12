@@ -194,7 +194,13 @@
 
                 // Show the modal
                 $('#jobModal').modal('show');
+
+
                 $('tr:contains("Official Website")').nextAll().remove();
+                $('p:contains("Download Mobile App")').remove();
+                $('p:contains("WWW.FREEJOBALERT.COM")').remove();
+                $('*:contains("freejobalert"):not(a)').remove();
+
 
 
 
