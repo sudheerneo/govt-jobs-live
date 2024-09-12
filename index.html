@@ -21,17 +21,18 @@
         body {
             height: 100vh;
             /* overflow: hidden; */
+            margin: -5 !important;
             /* Hide scrollbars */
-            background-color: transparent;
+            background-color: blueviolet;
 
         }
 
 
+        /* .leaflet-container {
+            overflow: hidden;
+        } */
 
-        .leaflet-container {
-            background: transparent !important;
 
-        }
 
         a {
             text-decoration: none;
@@ -98,13 +99,17 @@
             </div>
         </div>
     </div>
-    <div class="d-none">
-        <p class="screenPointer">{{jsonUrl}}</p>
-    </div>
+
     <!-- Leaflet JS -->
     <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script>
+
+        $(document).ready(() => {
+            alert("loadded")
+            // $('.leaflet-container').css('position', 'auto');
+
+        })
 
         const fullUrl = `${window.location.protocol}//${window.location.host}${window.location.pathname}`;
 
