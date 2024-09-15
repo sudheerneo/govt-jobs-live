@@ -16,12 +16,12 @@
         #map {
             height: 100vh;
             width: 100%;
-            position: unset !important;
         }
 
         body {
             overflow: hidden;
-            background-color: blueviolet;
+            background-color: rgba(138, 43, 226, 0.9);
+
 
         }
 
@@ -55,10 +55,10 @@
         }
 
         .version-control {
-            background-color: white;
+            background-color: rgba(255, 255, 255, 0.7);
             padding: 5px;
             font-size: 14px;
-            border-radius: 3px;
+            border-radius: 5px;
             position: absolute;
             bottom: 10px;
             left: 10px;
@@ -69,6 +69,7 @@
 
 <body>
 
+    <h2 class="text-center text-white" style="margin-top: -15px;">Live Indian Govt Jobs</h2>
 
     <div class="d-flex justify-content-center align-items-center vh-100">
         <div class="spinner-grow text-white p-fixed" id="loading-spinner" role="status" style="position: absolute;">
@@ -77,23 +78,25 @@
 
         <div id="map" style="visibility: hidden;"></div>
 
-    </div>
 
-    <!-- Bootstrap Modal -->
-    <div class="modal fade" id="jobModal" tabindex="-1" aria-labelledby="jobModalLabel" aria-hidden="true">
-        <div class="modal-dialog" role="document">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title" id="jobModalLabel">Job Title</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                </div>
-                <div class="modal-body" id="jobModalContent">
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+        <!-- Bootstrap Modal -->
+        <div class="modal fade" id="jobModal" tabindex="-1" aria-labelledby="jobModalLabel" aria-hidden="true">
+            <div class="modal-dialog" role="document">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="jobModalLabel">Job Title</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body" id="jobModalContent">
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    </div>
                 </div>
             </div>
         </div>
+
+
     </div>
 
     <!-- Leaflet JS -->
@@ -128,6 +131,7 @@
             success: function (data) {
                 // Process and display job data
                 jobData = data;
+                $('body').append(`<div class="version-control">Version ${jobData.dbOn}</div>`);
                 loadGeoJsonData();
 
             },
@@ -224,7 +228,6 @@
                                     var numberOfJobs = jobData[feature.properties.name][0] === "noData" ? 0 : jobData[feature.properties.name].length
                                     var marker = L.marker(center).addTo(map); // Create a marker at the center of the polygon
 
-                                    $('body').append(`<div class="version-control">Version ${jobData.dbOn}</div>`);
 
                                     // Define default and highlight styles
                                     const defaultStyle = {
