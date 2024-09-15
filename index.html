@@ -16,42 +16,18 @@
         #map {
             height: 100vh;
             width: 100%;
+            position: unset !important;
         }
 
         body {
-            height: 100vh;
-            /* overflow: hidden; */
-            margin: -5 !important;
-            /* Hide scrollbars */
+            overflow: hidden;
             background-color: blueviolet;
 
         }
 
 
-        /* .leaflet-container {
-            overflow: hidden;
-        } */
-
-
-
         a {
             text-decoration: none;
-        }
-
-
-        .state-label-tooltip {
-            border-radius: 20px;
-            /* padding: 5px; */
-            font-weight: bold;
-            font-size: 10px;
-            line-height: 1.5;
-            color: rgb(244, 248, 248);
-            /* box-shadow: 0 2px 2px 3px #262726; */
-            min-width: 100px;
-            text-align: center;
-            background: rgb(2, 0, 36);
-            background: linear-gradient(90deg, rgba(2, 0, 36, 1) 0%, rgba(9, 9, 121, 1) 35%, rgba(0, 212, 255, 1) 100%);
-
         }
 
         .jobs-label {
@@ -77,11 +53,32 @@
 
 
         }
+
+        .version-control {
+            background-color: white;
+            padding: 5px;
+            font-size: 14px;
+            border-radius: 3px;
+            position: absolute;
+            bottom: 10px;
+            left: 10px;
+            z-index: 1000;
+        }
     </style>
 </head>
 
 <body>
-    <div id="map"></div>
+
+
+    <div class="d-flex justify-content-center align-items-center vh-100">
+        <div class="spinner-grow text-white p-fixed" id="loading-spinner" role="status" style="position: absolute;">
+            <span class="visually-hidden">Loading...</span>
+        </div>
+
+        <div id="map" style="visibility: hidden;"></div>
+
+    </div>
+
     <!-- Bootstrap Modal -->
     <div class="modal fade" id="jobModal" tabindex="-1" aria-labelledby="jobModalLabel" aria-hidden="true">
         <div class="modal-dialog" role="document">
@@ -91,7 +88,6 @@
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body" id="jobModalContent">
-                    <!-- Job contentHtml will be injected here -->
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
@@ -106,25 +102,14 @@
     <script>
 
         $(document).ready(() => {
-            alert("loadded")
             // $('.leaflet-container').css('position', 'auto');
 
         })
 
         const fullUrl = `${window.location.protocol}//${window.location.host}${window.location.pathname}`;
 
-
         // Initialize the map without zoom and pan features
-        var map = L.map('map', {
-            // zoomControl: false,
-            // dragging: false,
-            // doubleClickZoom: false,
-            // scrollWheelZoom: false,
-            // touchZoom: false,
-            // autoPan: false,
-            // zoomSnap: 0.1
-        }).setView([20.5937, 78.9629], 5);  // Center on India
-
+        var map = L.map('map', {}).setView([20.5937, 78.9629], 5);  // Center on India
 
 
         // Add a tile layer
@@ -200,14 +185,10 @@
                 // Show the modal
                 $('#jobModal').modal('show');
 
-
                 $('tr:contains("Official Website")').nextAll().remove();
                 $('p:contains("Download Mobile App")').remove();
                 $('p:contains("WWW.FREEJOBALERT.COM")').remove();
                 $('td:contains("freejobalert"), p:contains("freejobalert"), span:contains("freejobalert"):not(a)').remove();
-
-
-
 
 
             }
@@ -235,14 +216,15 @@
                                 const jobDetails = getJobDetailsByState(stateName);
                                 const popupContent = createPopupContent(stateName, jobDetails);
 
-
-
                                 // Safely check if jobDetails and jobDetails.jobs exist
                                 if (jobData[feature.properties.name]) {
+
 
                                     var center = layer.getBounds().getCenter();  // Get the center of the polygon
                                     var numberOfJobs = jobData[feature.properties.name][0] === "noData" ? 0 : jobData[feature.properties.name].length
                                     var marker = L.marker(center).addTo(map); // Create a marker at the center of the polygon
+
+                                    $('body').append(`<div class="version-control">Version ${jobData.dbOn}</div>`);
 
                                     // Define default and highlight styles
                                     const defaultStyle = {
@@ -299,18 +281,6 @@
                                     // Bind popup with state name and number of jobs
                                     layer.bindPopup(popupContent);
 
-
-                                    // Add RTO code as a label on the map using a marker with a label (tooltip)
-
-                                    // Create a tooltip to display the state code and number of jobs
-                                    // marker.bindTooltip('<b>' + feature.properties.name + '<br>' + jobDetails.numberOfJobs + '</b>', {
-                                    //     permanent: true,    // Show the label permanently
-                                    //     direction: 'center', // Display the label above the marker
-                                    //     className: 'state-label-tooltip', // Custom class for styling
-                                    //     offset: [-15, -33]  // Adjust the position of the label relative to the marker
-                                    // }).openTooltip();
-                                    // Create a tooltip to display the state code and number of jobs
-
                                     marker.bindTooltip('<b>' + (numberOfJobs) + '</b>', {
                                         permanent: true,    // Show the label permanently
                                         direction: 'center', // Display the label above the marker
@@ -329,6 +299,10 @@
                             }
                         }
                     }).addTo(map);
+
+                    $('#map').css("visibility", "visible")
+                    $('#loading-spinner').hide()
+
                 });
         }
 
