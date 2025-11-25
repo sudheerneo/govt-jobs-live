@@ -1,340 +1,1175 @@
 <!DOCTYPE html>
 <html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Govt Jobs Map — production-ready</title>
 
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Govt Jobs Map | latest govt jobs | Developed  by Sudheer Neo </title>
-    <meta name="title" content="Govt Jobs Map | Developed  by Sudheer Neo | latest govt jobs" />
-    <meta name="description" content="Looking for a government job? Find all active Indian government jobs on a map. Select your state to view current openings and start your career journey." />
-	<link rel="canonical" href="https://govtjobsmap.sudheerneo.com/" />
-	 <link rel="icon" href="https://sudheerneo.com/favicon.ico" sizes="any">
-        <link rel="apple-touch-icon" href="https://sudheerneo.com/apple-touch-icon.png">
-    
+    <link
+      rel="stylesheet"
+      href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css"
+    />
+    <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css"
+      rel="stylesheet"
+    />
 
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
-    <!-- Bootstrap CSS -->
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet"
-        integrity="sha384-1BmE4kWBq78iYhFldvKuhfTAU6auU8tT94WrHftjDbrCEXSU1oBoqyl2QvZ6jIW3" crossorigin="anonymous">
-    <script src="https://code.jquery.com/jquery-3.6.0.min.js"
-        integrity="sha256-/xUj+3OJU5yExlq6GSYGSHk7tPXikynS7ogEvDej/m4=" crossorigin="anonymous"></script>  
     <style>
-        #map {
-            height: 100vh;
-            width: 100%;
+      html,
+      body {
+        height: 100%;
+        margin: 0;
+        font-family: Arial, Helvetica, sans-serif;
+      }
+      body {
+        background: linear-gradient(
+          0deg,
+          rgba(138, 43, 226, 0.85),
+          rgba(58, 123, 213, 0.85)
+        );
+        color: #fff;
+      }
+      h2.header-title {
+        margin: 8px 0;
+        text-align: center;
+        color: #fff;
+        text-shadow: 0 1px 2px rgba(0, 0, 0, 0.6);
+      }
+      #map {
+        height: calc(100vh - 110px);
+        width: 100%;
+        display: block;
+      }
+      .controls {
+        position: absolute;
+        top: 56px;
+        right: 12px;
+        z-index: 1400;
+        background: #fff;
+        color: #111;
+        padding: 10px;
+        border-radius: 8px;
+        box-shadow: 0 4px 18px rgba(0, 0, 0, 0.12);
+        min-width: 260px;
+      }
+      .version-control {
+        position: absolute;
+        left: 12px;
+        bottom: 12px;
+        z-index: 1200;
+        background: rgba(255, 255, 255, 0.9);
+        color: #000;
+        padding: 6px 8px;
+        border-radius: 6px;
+        display: none;
+      }
+      .loading {
+        position: absolute;
+        left: 50%;
+        top: 50%;
+        transform: translate(-50%, -50%);
+        z-index: 1500;
+      }
+
+      /* Master marker look (real marker above state label) */
+      .custom-marker {
+        position: relative;
+        width: 36px;
+        height: 36px;
+        border-radius: 50%;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        color: #fff;
+        font-weight: 700;
+        font-size: 15px;
+        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.35);
+      }
+      .marker-new-badge {
+        position: absolute;
+        top: -8px;
+        right: -8px;
+        background: #ff3b30;
+        color: #fff;
+        padding: 2px 6px;
+        font-size: 11px;
+        font-weight: 800;
+        border-radius: 12px;
+        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25);
+      }
+      .marker-bounce {
+        animation: bounce 420ms ease;
+      }
+      @keyframes bounce {
+        0% {
+          transform: translateY(0);
         }
-
-        body {
-            overflow: hidden;
-            background-color: rgba(138, 43, 226, 0.9);
-
-
+        30% {
+          transform: translateY(-10px);
         }
-
-
-        a {
-            text-decoration: none;
+        60% {
+          transform: translateY(0);
         }
-
-        .jobs-label {
-            background-color: #3388FF;
-            border: 0 solid transparent;
-            -webkit-box-shadow: none;
-            -moz-box-shadow: none;
-            box-shadow: none;
-            color: white;
-            font-size: 15px;
-            text-shadow: 1px solid black;
-            padding: 0;
+        100% {
+          transform: translateY(0);
         }
+      }
 
-        .statename-label {
-            font-size: 10px;
-            padding: 3px;
-            background-color: transparent;
-            border: 0 solid transparent;
-            -webkit-box-shadow: none;
-            -moz-box-shadow: none;
-            box-shadow: none;
+      /* Centered state label (always visible) */
+      .state-center-label {
+        position: absolute;
+        transform: translate(-50%, -50%);
+        background: rgba(255, 255, 255, 0.9);
+        color: #000;
+        padding: 4px 8px;
+        border-radius: 6px;
+        font-weight: 700;
+        font-size: 13px;
+        pointer-events: none;
+        white-space: nowrap;
+        box-shadow: 0 1px 4px rgba(0, 0, 0, 0.15);
+      }
 
+      /* small compact label for tiny states */
+      .state-center-label.compact {
+        font-size: 11px;
+        padding: 2px 6px;
+      }
 
-        }
+      /* curved label SVG container overlay */
+      .label-svg {
+        position: absolute;
+        left: 0;
+        top: 0;
+        pointer-events: none;
+        z-index: 1201;
+      }
 
-        .version-control {
-            background-color: rgba(255, 255, 255, 0.7);
-            padding: 5px;
-            font-size: 14px;
-            border-radius: 5px;
-            position: absolute;
-            bottom: 10px;
-            left: 10px;
-            z-index: 1000;
-        }
+      /* Popup pagination */
+      .popup-pagination {
+        margin-top: 10px;
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+        align-items: center;
+      }
+      .page-btn {
+        padding: 4px 7px;
+        border: 1px solid #ccc;
+        background: #fff;
+        border-radius: 6px;
+        cursor: pointer;
+        color: #111;
+        font-weight: 600;
+        text-decoration: none;
+      }
+      .page-btn.disabled {
+        opacity: 0.45;
+        pointer-events: none;
+      }
+
+      /* density legend small */
+      .density-legend {
+        margin-top: 10px;
+        font-size: 12px;
+        background: #fff;
+        color: #111;
+        padding: 6px;
+        border-radius: 6px;
+      }
+      .controls input.form-control {
+        width: 100%;
+      }
+
+      /* leader line from label to polygon when needed */
+      .leader-line {
+        stroke: #444;
+        stroke-width: 1.2;
+        stroke-opacity: 0.7;
+        fill: none;
+        pointer-events: none;
+      }
     </style>
-</head>
+  </head>
+  <body>
+    <h2 class="header-title">Live Indian Govt Jobs (GIS-grade)</h2>
 
-<body>
+    <div class="controls" id="controls">
+      <div class="mb-2">
+        <input
+          id="searchInput"
+          class="form-control form-control-sm"
+          placeholder="Search state (e.g., Karnataka)"
+        />
+      </div>
+      <div class="d-flex gap-2 mb-2">
+        <button id="searchBtn" class="btn btn-sm btn-primary w-100">
+          Search & Go
+        </button>
+      </div>
 
-    <h2 class="text-center text-white" style="margin-top: -15px;">Live Indian Govt Jobs</h2>
-
-    <div class="d-flex justify-content-center align-items-center vh-100">
-        <div class="spinner-grow text-white p-fixed" id="loading-spinner" role="status" style="position: absolute;">
-            <span class="visually-hidden">Loading...</span>
+      <div class="d-flex gap-2 mb-2">
+        <div class="btn-group" role="group">
+          <button
+            id="modeMarkers"
+            class="btn btn-sm btn-outline-primary active"
+          >
+            Markers
+          </button>
+          <button id="modePolygons" class="btn btn-sm btn-outline-primary">
+            Polygons
+          </button>
+          <button id="modeBoth" class="btn btn-sm btn-outline-primary">
+            Both
+          </button>
         </div>
+        <button id="resetView" class="btn btn-sm btn-secondary">Reset</button>
+      </div>
 
-        <div id="map" style="visibility: hidden;"></div>
-
-
-        <!-- Bootstrap Modal -->
-        <div class="modal fade" id="jobModal" tabindex="-1" aria-labelledby="jobModalLabel" aria-hidden="true">
-            <div class="modal-dialog" role="document">
-                <div class="modal-content">
-                    <div class="modal-header">
-                        <h5 class="modal-title" id="jobModalLabel">Job Title</h5>
-                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                    </div>
-                    <div class="modal-body" id="jobModalContent">
-                    </div>
-                    <div class="modal-footer">
-                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-                    </div>
-                </div>
-            </div>
+      <div class="density-legend">
+        <div><strong>Job density</strong></div>
+        <div
+          style="display: flex; gap: 6px; align-items: center; margin-top: 6px"
+        >
+          <div
+            style="
+              width: 16px;
+              height: 12px;
+              background: #c0c0c0;
+              border-radius: 2px;
+            "
+          ></div>
+          <div style="font-size: 13px">0</div>
         </div>
-
-
+        <div
+          style="display: flex; gap: 6px; align-items: center; margin-top: 6px"
+        >
+          <div
+            style="
+              width: 16px;
+              height: 12px;
+              background: #66bb6a;
+              border-radius: 2px;
+            "
+          ></div>
+          <div style="font-size: 13px">1–5</div>
+        </div>
+        <div
+          style="display: flex; gap: 6px; align-items: center; margin-top: 6px"
+        >
+          <div
+            style="
+              width: 16px;
+              height: 12px;
+              background: #ffa726;
+              border-radius: 2px;
+            "
+          ></div>
+          <div style="font-size: 13px">6–20</div>
+        </div>
+        <div
+          style="display: flex; gap: 6px; align-items: center; margin-top: 6px"
+        >
+          <div
+            style="
+              width: 16px;
+              height: 12px;
+              background: #ef5350;
+              border-radius: 2px;
+            "
+          ></div>
+          <div style="font-size: 13px">21+</div>
+        </div>
+      </div>
     </div>
 
-    <!-- Leaflet JS -->
+    <div id="map" style="visibility: hidden"></div>
+    <div id="loading" class="loading">
+      <div class="spinner-border text-light" role="status"></div>
+    </div>
+    <div id="version" class="version-control"></div>
+
+    <!-- modal -->
+    <div class="modal fade" id="jobModal" tabindex="-1" aria-hidden="true">
+      <div class="modal-dialog modal-lg modal-dialog-scrollable">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 id="jobModalLabel" class="modal-title">Job Title</h5>
+            <button class="btn-close" data-bs-dismiss="modal"></button>
+          </div>
+          <div id="jobModalContent" class="modal-body"></div>
+          <div class="modal-footer">
+            <button class="btn btn-secondary" data-bs-dismiss="modal">
+              Close
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- overlay SVG for curved labels & leader lines -->
+    <svg id="labelSvg" class="label-svg" width="100%" height="100%"></svg>
+
+    <!-- scripts -->
     <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
-    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+
     <script>
+      (function () {
+        "use strict";
 
-        $(document).ready(() => {
-            // $('.leaflet-container').css('position', 'auto');
-
-        })
-
-        const fullUrl = `${window.location.protocol}//${window.location.host}${window.location.pathname}`;
-
-        // Initialize the map without zoom and pan features
-        var map = L.map('map', {}).setView([20.5937, 78.9629], 5);  // Center on India
-
-
-        // Add a tile layer
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            attribution: '© OpenStreetMap contributors'
-        }).addTo(map);
-
-
-        // Store job data
-        var jobData = {};
-
-        // Fetch job data using AJAX
-        $.ajax({
-            url: `${fullUrl}src/jbl.json`,
-            dataType: 'json',
-            success: function (data) {
-                // Process and display job data
-                jobData = data;
-                $('body').append(`<div class="version-control">Version ${jobData.dbOn}</div>`);
-                loadGeoJsonData();
-
-            },
-            error: function (jqXHR, textStatus, errorThrown) {
-                console.error('Error fetching data:', textStatus, errorThrown);
-                // Handle errors appropriately, e.g., display an error message to the user
+        /* ---------- polylabel implementation (tiny, by Mapbox) ----------
+       Returns [x,y] for best label point inside polygon (coordinates in same units).
+       Source concept: https://github.com/mapbox/polylabel
+       This is a simplified but robust JS port sufficient for our polygons.
+    ------------------------------------------------------------------*/
+        function polylabel(polygon, precision = 1.0) {
+          // polygon: array of rings, each ring is [ [x,y], ... ] with first ring outer
+          // we operate in lat/lng units — ok for placement
+          function pointDistToPolygon(x, y, rings) {
+            let inside = false;
+            let minDist = Infinity;
+            for (let k = 0; k < rings.length; k++) {
+              const ring = rings[k];
+              for (let i = 0; i < ring.length; i++) {
+                const a = ring[i];
+                const b = ring[(i + 1) % ring.length];
+                // point to segment distance
+                const dx = b[0] - a[0];
+                const dy = b[1] - a[1];
+                const t =
+                  ((x - a[0]) * dx + (y - a[1]) * dy) /
+                  (dx * dx + dy * dy || 1);
+                const tClamped = Math.max(0, Math.min(1, t));
+                const projX = a[0] + tClamped * dx;
+                const projY = a[1] + tClamped * dy;
+                const d = Math.hypot(x - projX, y - projY);
+                if (d < minDist) minDist = d;
+                // winding rule for inside check
+                if (
+                  a[1] > y != b[1] > y &&
+                  x < ((b[0] - a[0]) * (y - a[1])) / (b[1] - a[1] + 0.0) + a[0]
+                )
+                  inside = !inside;
+              }
             }
-        });
+            return { dist: minDist, inside: inside };
+          }
 
+          // bounding box
+          const outer = polygon[0];
+          let minX = Infinity,
+            minY = Infinity,
+            maxX = -Infinity,
+            maxY = -Infinity;
+          for (const p of outer) {
+            minX = Math.min(minX, p[0]);
+            minY = Math.min(minY, p[1]);
+            maxX = Math.max(maxX, p[0]);
+            maxY = Math.max(maxY, p[1]);
+          }
+          const width = maxX - minX;
+          const height = maxY - minY;
+          const cellSize = Math.min(width, height);
+          if (cellSize === 0) return [(minX + maxX) / 2, (minY + maxY) / 2];
 
-
-        // Function to get job details by state name
-        function getJobDetailsByState(stateName) {
-            const jobs = jobData[stateName];
-            if (!jobs) {
-                return { numberOfJobs: 0 };
+          // grid start
+          const h = cellSize / 2;
+          let cellQueue = [];
+          for (let x = minX; x < maxX; x += cellSize) {
+            for (let y = minY; y < maxY; y += cellSize) {
+              const cx = x + h;
+              const cy = y + h;
+              const d = pointDistToPolygon(cx, cy, polygon);
+              cellQueue.push({
+                x: cx,
+                y: cy,
+                h: h,
+                dist: d.dist,
+                inside: d.inside,
+              });
             }
-            return {
-                numberOfJobs: jobs.length,
-                jobs: jobs,
+          }
 
-            };
+          // add centroid as candidate
+          const centroidX = outer.reduce((s, p) => s + p[0], 0) / outer.length;
+          const centroidY = outer.reduce((s, p) => s + p[1], 0) / outer.length;
+          const cdist = pointDistToPolygon(centroidX, centroidY, polygon);
+          let bestCell = {
+            x: centroidX,
+            y: centroidY,
+            h: 0,
+            dist: cdist.dist,
+            inside: cdist.inside,
+          };
+          for (const c of cellQueue)
+            if (c.inside && c.dist > bestCell.dist) bestCell = c;
+
+          // binary search-like refine
+          while (cellQueue.length) {
+            // sort by max potential distance
+            cellQueue.sort((a, b) => b.dist + b.h - (a.dist + a.h));
+            const cell = cellQueue.shift();
+            if (cell.dist > bestCell.dist) bestCell = cell;
+            if (cell.h <= precision) continue;
+            const h2 = cell.h / 2;
+            // create 4 children
+            for (const nx of [cell.x - h2, cell.x + h2]) {
+              for (const ny of [cell.y - h2, cell.y + h2]) {
+                const d = pointDistToPolygon(nx, ny, polygon);
+                const obj = {
+                  x: nx,
+                  y: ny,
+                  h: h2,
+                  dist: d.dist,
+                  inside: d.inside,
+                };
+                if (obj.inside && obj.dist > bestCell.dist) bestCell = obj;
+                cellQueue.push(obj);
+              }
+            }
+          }
+          return [bestCell.x, bestCell.y];
         }
 
-
-
-        function createPopupContent(stateName, jobDetails) {
-            if (jobDetails && jobDetails.jobs && jobDetails.jobs.length > 0) {
-                return '<b>' + stateName + '</b><br>' + jobDetails.jobs.map((job, index) => {
-                    if (job === "noData") {
-                        return 'No jobs available now.';
-                    }
-                    return `<a href="#" class="job-title" data-job-id="${index}">${job.postNameTitle}</a>`;
-                }).join('<br>');
-            } else {
-                return '<b>' + stateName + '</b><br>No jobs available now.';
-            }
+        /* ---------- small helper math ---------- */
+        function latLngArrayToXYArray(latlngs) {
+          // convert array of [lat,lng] to [lng,lat] for polylabel (x,y)
+          return latlngs.map((p) => [p[1], p[0]]);
         }
 
-        // Handle click on job titles inside the popup
-        $(document).on('click', '.job-title', function (e) {
+        /* ---------- map init ---------- */
+        const map = L.map("map", { preferCanvas: true }).setView(
+          [20.5937, 78.9629],
+          5
+        );
+        L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png").addTo(
+          map
+        );
+
+        /* ---------- global containers ---------- */
+        const markersLayer = L.layerGroup().addTo(map);
+        const polygonsLayer = L.layerGroup().addTo(map);
+        const stateMarkers = {}; // name->marker
+        const stateLabels = {}; // name-> {labelEl, marker}
+        const svgOverlay = document.getElementById("labelSvg");
+
+        /* ---------- safe helpers ---------- */
+        function escapeHtml(s) {
+          return String(s || "")
+            .replaceAll("&", "&amp;")
+            .replaceAll("<", "&lt;")
+            .replaceAll(">", "&gt;")
+            .replaceAll('"', "&quot;")
+            .replaceAll("'", "&#39;");
+        }
+        function sanitizeHtml(html) {
+          return String(html || "")
+            .replace(/<script[\s\S]*?>[\s\S]*?<\/script>/gi, "")
+            .replaceAll("onerror=", "")
+            .replaceAll("onload=", "");
+        }
+        function densityColor(count) {
+          if (!count) return "#c0c0c0";
+          if (count <= 5) return "#66bb6a";
+          if (count <= 20) return "#ffa726";
+          return "#ef5350";
+        }
+        function isJobNew(job) {
+          if (!job) return false;
+          if (job.isNew === true) return true;
+          if (String(job.isNew).toLowerCase() === "true") return true;
+          const pd = job.postDate || job.postedAt || job.date;
+          if (!pd) return false;
+          const d = new Date(pd);
+          if (isNaN(d)) return false;
+          return (Date.now() - d.getTime()) / (1000 * 60 * 60 * 24) <= 7;
+        }
+
+        /* ---------- popup state & pagination (same robust system) ---------- */
+        const popupState = { popup: null, stateName: null, jobDetails: null };
+        function createPopupContent(
+          stateName,
+          jobDetails,
+          page = 1,
+          pageSize = 5
+        ) {
+          if (
+            !jobDetails ||
+            !Array.isArray(jobDetails.jobs) ||
+            jobDetails.jobs.length === 0
+          )
+            return `<div style="min-width:200px"><b>${escapeHtml(
+              stateName
+            )}</b><br>No jobs available now.</div>`;
+          const jobs = jobDetails.jobs;
+          const total = jobs.length;
+          const totalPages = Math.max(1, Math.ceil(total / pageSize));
+          page = Math.max(1, Math.min(page, totalPages));
+          const start = (page - 1) * pageSize;
+          const seg = jobs.slice(start, start + pageSize);
+          const list = seg
+            .map(
+              (job, i) =>
+                `<div><a href="#" class="job-title" data-job-id="${
+                  start + i
+                }">${escapeHtml(job.postNameTitle || "Untitled")}</a></div>`
+            )
+            .join("");
+          const prevDisabled = page <= 1,
+            nextDisabled = page >= totalPages;
+          return `<div style="min-width:220px;max-width:420px;"><div style="font-weight:700;margin-bottom:6px">${escapeHtml(
+            stateName
+          )}</div><div>${list}</div><div class="popup-pagination">${
+            prevDisabled
+              ? `<span class="page-btn disabled">⏮ First</span>`
+              : `<a href="#" class="page-btn" data-page="1">⏮ First</a>`
+          }${
+            prevDisabled
+              ? `<span class="page-btn disabled">⬅ Prev</span>`
+              : `<a href="#" class="page-btn" data-page="${
+                  page - 1
+                }">⬅ Prev</a>`
+          }<span style="font-weight:700;margin:0 6px">Page ${page}/${totalPages}</span>${
+            nextDisabled
+              ? `<span class="page-btn disabled">Next ➡</span>`
+              : `<a href="#" class="page-btn" data-page="${
+                  page + 1
+                }">Next ➡</a>`
+          }${
+            nextDisabled
+              ? `<span class="page-btn disabled">Last ⏭</span>`
+              : `<a href="#" class="page-btn" data-page="${totalPages}">Last ⏭</a>`
+          }</div></div>`;
+        }
+
+        /* ---------- event delegation for pagination + job click ---------- */
+        document.addEventListener("click", function (e) {
+          const el = e.target;
+          if (el.matches(".page-btn")) {
             e.preventDefault();
-
-            const jobId = $(this).data('job-id');
-            const stateName = $(this).closest('.leaflet-popup-content').find('b').text();
-            const jobDetails = getJobDetailsByState(stateName);
-
-            if (jobDetails && jobDetails.jobs[jobId]) {
-                const job = jobDetails.jobs[jobId];
-
-                // Update modal content
-                $('#jobModalLabel').text(job.postNameTitle);  // Modal title
-                $('#jobModalContent').html(job.contentHtml);  // Modal content
-
-                // Show the modal
-                $('#jobModal').modal('show');
-
-                $('tr:contains("Official Website")').nextAll().remove();
-                $('p:contains("Download Mobile App")').remove();
-                $('p:contains("WWW.FREEJOBALERT.COM")').remove();
-                $('td:contains("freejobalert"), p:contains("freejobalert"), span:contains("freejobalert"):not(a)').remove();
-
-
-            }
+            if (el.classList.contains("disabled")) return;
+            if (!popupState.popup) return;
+            const page = Number(el.dataset.page) || 1;
+            popupState.popup.setContent(
+              createPopupContent(
+                popupState.stateName,
+                popupState.jobDetails,
+                page
+              )
+            );
+            return;
+          }
+          if (el.matches(".job-title")) {
+            e.preventDefault();
+            const id = Number(el.dataset.jobId);
+            const job = popupState.jobDetails?.jobs?.[id];
+            if (!job) return;
+            document.getElementById("jobModalLabel").textContent =
+              job.postNameTitle || "Job";
+            document.getElementById("jobModalContent").innerHTML = sanitizeHtml(
+              job.contentHtml || job.description || "No details."
+            );
+            new bootstrap.Modal(document.getElementById("jobModal")).show();
+          }
         });
 
-        // Load GeoJSON data and add it to the map
-        function loadGeoJsonData() {
-            fetch(`${fullUrl}src/ind.geojson`)  // Adjust the URL as needed
-                .then(response => response.json())
-                .then(data => {
-                    L.geoJSON(data, {
-                        filter: function (feature) {
-                            return feature.geometry.type === 'Polygon' || feature.geometry.type === 'MultiPolygon';
-                        },
-                        style: function (feature) {
-                            return {
-                                color: getRandomColor(),
-                                weight: 2,
-                                fillOpacity: .7
-                            };
-                        },
-                        onEachFeature: function (feature, layer) {
-                            if (feature.geometry.type === 'Polygon' || feature.geometry.type === 'MultiPolygon') {
-                                const stateName = feature.properties.name;
-                                const jobDetails = getJobDetailsByState(stateName);
-                                const popupContent = createPopupContent(stateName, jobDetails);
+        /* ---------- Search & mode UI wiring ---------- */
+        const searchInput = document.getElementById("searchInput"),
+          searchBtn = document.getElementById("searchBtn"),
+          modeMarkers = document.getElementById("modeMarkers"),
+          modePolygons = document.getElementById("modePolygons"),
+          modeBoth = document.getElementById("modeBoth"),
+          resetView = document.getElementById("resetView");
 
-                                // Safely check if jobDetails and jobDetails.jobs exist
-                                if (jobData[feature.properties.name]) {
-
-
-                                    var center = layer.getBounds().getCenter();  // Get the center of the polygon
-                                    var numberOfJobs = jobData[feature.properties.name][0] === "noData" ? 0 : jobData[feature.properties.name].length
-                                    var marker = L.marker(center).addTo(map); // Create a marker at the center of the polygon
-
-
-                                    // Define default and highlight styles
-                                    const defaultStyle = {
-                                        color: getRandomColor(),
-                                        weight: 2,
-                                        fillOpacity: .7
-                                    };
-
-                                    const highlightStyle = {
-                                        color: '#FF0000', // Highlight border color (e.g., dark red)
-                                        weight: 4,        // Highlight border width
-                                        fillOpacity: 0.5  // Highlight fill opacity
-                                    };
-
-                                    // Function to reset the style
-                                    function resetHighlight(e) {
-                                        const layer = e.target;
-                                        layer.setStyle(defaultStyle);
-                                    }
-
-                                    // Function to highlight the feature
-                                    function highlightFeature(e) {
-                                        const layer = e.target;
-                                        layer.setStyle(highlightStyle);
-                                    }
-
-                                    // Add event listeners to the layer
-                                    layer.on({
-                                        mouseover: highlightFeature,
-                                        mouseout: resetHighlight,
-                                        click: function (e) {
-                                            // Optionally, you can add code here for handling clicks
-                                        }
-                                    });
-
-                                    // Bind the popup to the layer with autoPan disabled
-                                    layer.bindPopup(popupContent, {
-                                        autoPan: true, // Disable auto panning when showing the popup
-                                        maxWidth: 500,
-                                        maxHeight: '100%'
-                                    });
-
-                                    // Trigger popup on hover (mouseover)
-                                    layer.on('mouseover', function (e) {
-                                        // Bind the popup to the layer with autoPan disabled
-                                        layer.bindPopup(popupContent, {
-                                            autoPan: true, // Disable auto panning when showing the popup
-                                            maxWidth: 500,
-                                            maxHieght: '100%'
-                                        }).openPopup(e.latlng); // Open the popup at the event's lat/lng
-                                    });
-
-
-                                    // Bind popup with state name and number of jobs
-                                    layer.bindPopup(popupContent);
-
-                                    marker.bindTooltip('<b>' + (numberOfJobs) + '</b>', {
-                                        permanent: true,    // Show the label permanently
-                                        direction: 'center', // Display the label above the marker
-                                        offset: [-15, 0],  // Adjust the position of the label relative to the marker
-                                        className: 'jobs-label', // Custom class for styling
-                                    }).openTooltip();
-
-                                    marker.bindTooltip('<b>' + feature.properties.name + '</b>', {
-                                        permanent: true,    // Show the label permanently
-                                        direction: 'center', // Display the label above the marker
-                                        offset: [-15, 30],  // Adjust the position of the label relative to the marker
-                                        className: 'statename-label', // Custom class for styling
-                                    }).openTooltip();
-                                }
-
-                            }
-                        }
-                    }).addTo(map);
-
-                    $('#map').css("visibility", "visible")
-                    $('#loading-spinner').hide()
-
-                });
+        searchBtn.addEventListener("click", doSearch);
+        searchInput.addEventListener("keydown", (ev) => {
+          if (ev.key === "Enter") doSearch();
+        });
+        modeMarkers.addEventListener("click", () => setMode("markers"));
+        modePolygons.addEventListener("click", () => setMode("polygons"));
+        modeBoth.addEventListener("click", () => setMode("both"));
+        resetView.addEventListener("click", () =>
+          map.setView([20.5937, 78.9629], 5)
+        );
+        function setMode(m) {
+          modeMarkers.classList.remove("active");
+          modePolygons.classList.remove("active");
+          modeBoth.classList.remove("active");
+          if (m === "markers") {
+            map.addLayer(markersLayer);
+            map.removeLayer(polygonsLayer);
+            modeMarkers.classList.add("active");
+          } else if (m === "polygons") {
+            map.removeLayer(markersLayer);
+            map.addLayer(polygonsLayer);
+            modePolygons.classList.add("active");
+          } else {
+            map.addLayer(markersLayer);
+            map.addLayer(polygonsLayer);
+            modeBoth.classList.add("active");
+          }
         }
 
-        // Function to generate random colors
-        const usedColors = [];
-
-        function getRandomColor() {
-            let color;
-            do {
-                // Generate random color
-                color = '#' + Math.floor(Math.random() * 16777215).toString(16).padStart(6, '0');
-            } while (usedColors.includes(color) || color === '#000000' || color === '#FFFFFF');
-
-            usedColors.push(color);
-            return color;
+        function doSearch() {
+          const q = String(searchInput.value || "")
+            .trim()
+            .toLowerCase();
+          if (!q) return;
+          let found = null;
+          for (const k of Object.keys(jobData || {})) {
+            if (k.toLowerCase().includes(q)) {
+              found = k;
+              break;
+            }
+          }
+          if (!found) {
+            alert("State not found: " + q);
+            return;
+          }
+          const m = stateMarkers[found];
+          if (m) {
+            map.setView(m.getLatLng(), Math.max(map.getZoom(), 6), {
+              animate: true,
+            });
+            m.fire("click");
+          } else if (statePolygons[found]) {
+            map.fitBounds(statePolygons[found].getBounds(), { maxZoom: 7 });
+            statePolygons[found].fire("click");
+          }
         }
+
+        /* ---------- load data & geojson ---------- */
+        let jobData = {},
+          statePolygons = {};
+        async function init() {
+          try {
+            const base =
+              `${location.protocol}//${location.host}${location.pathname}`.replace(
+                /\/$/,
+                ""
+              );
+            const jresp = await fetch(base + "/src/jbl.json", {
+              cache: "no-cache",
+            });
+            if (!jresp.ok) throw new Error("jobs load failed");
+            jobData = await jresp.json();
+            document.getElementById("version").textContent =
+              "Version " + (jobData.dbOn || "N/A");
+            document.getElementById("version").style.display = "block";
+            const gres = await fetch(base + "/src/ind.geojson", {
+              cache: "no-cache",
+            });
+            if (!gres.ok) throw new Error("geojson failed");
+            const geo = await gres.json();
+            addGeoJson(geo);
+          } catch (err) {
+            console.error(err);
+            document.getElementById(
+              "loading"
+            ).innerHTML = `<div style="color:#fdd">Error loading</div>`;
+          } finally {
+            document.getElementById("map").style.visibility = "visible";
+            document.getElementById("loading").style.display = "none";
+          }
+        }
+
+        /* ---------- add geojson and create marker+labels with smart placement ---------- */
+        function addGeoJson(geojson) {
+          const layer = L.geoJSON(geojson, {
+            filter: (f) =>
+              f.geometry &&
+              (f.geometry.type === "Polygon" ||
+                f.geometry.type === "MultiPolygon"),
+            style: (feature) => {
+              const name = feature.properties?.name || "";
+              const jd = getJobDetails(name);
+              const count = (jd.jobs || []).length;
+              // use unique state color (HSL seeded) for stroke/fill
+              return {
+                color: colorFromString(name),
+                weight: 1.5,
+                fillColor: densityColor(count),
+                fillOpacity: 0.45,
+              };
+            },
+            onEachFeature: function (feature, l) {
+              const stateName = feature.properties?.name || "";
+              const jobDetails = getJobDetails(stateName);
+              statePolygons[stateName] = l;
+
+              // bind popup skeleton
+              l.bindPopup(createPopupContent(stateName, jobDetails, 1), {
+                maxWidth: 460,
+              });
+
+              // tooltip on hover
+              l.on("mouseover", (e) => {
+                if (!l._tooltip) {
+                  const cnt = (jobDetails.jobs || []).length;
+                  l.bindTooltip(
+                    `<b>${escapeHtml(stateName)}</b><br/>${cnt} jobs`,
+                    { direction: "auto", sticky: true }
+                  );
+                }
+                l.openTooltip(e.latlng);
+              });
+              l.on("mouseout", () => l.closeTooltip());
+
+              // click open popup and register popup state
+              l.on("click", (e) => {
+                const html = createPopupContent(stateName, jobDetails, 1);
+                l.setPopupContent(html);
+                l.openPopup(e.latlng);
+                popupState.popup = l.getPopup();
+                popupState.stateName = stateName;
+                popupState.jobDetails = jobDetails;
+              });
+
+              // Compute best label position with polylabel
+              const geom = feature.geometry;
+              let rings = [];
+              if (geom.type === "Polygon") {
+                rings = geom.coordinates.map((r) =>
+                  r.map((pt) => [pt[1], pt[0]])
+                ); // convert [lng,lat] -> [x=lng,y=lat]
+              } else if (geom.type === "MultiPolygon") {
+                // pick largest polygon by bbox area as primary
+                let largest = null;
+                let largestArea = -1;
+                for (const poly of geom.coordinates) {
+                  const ring = poly[0].map((pt) => [pt[1], pt[0]]);
+                  // approximate area
+                  let minX = 1e9,
+                    minY = 1e9,
+                    maxX = -1e9,
+                    maxY = -1e9;
+                  for (const p of ring) {
+                    minX = Math.min(minX, p[0]);
+                    minY = Math.min(minY, p[1]);
+                    maxX = Math.max(maxX, p[0]);
+                    maxY = Math.max(maxY, p[1]);
+                  }
+                  const area = (maxX - minX) * (maxY - minY);
+                  if (area > largestArea) {
+                    largestArea = area;
+                    largest = poly;
+                  }
+                }
+                rings = largest[0].map((pt) => [pt[1], pt[0]]);
+                rings = [rings]; // polylabel expects [outer, ...holes]
+              }
+
+              // If rings empty fallback to centroid
+              if (!rings || rings.length === 0) {
+                const ctr = l.getBounds().getCenter();
+                placeMarkerLabelAt(
+                  [ctr.lat, ctr.lng],
+                  stateName,
+                  jobDetails,
+                  l
+                );
+                return;
+              }
+
+              // polylabel call - precision 0.0005 degrees ~ good
+              // =========== SAFE POLYLABEL CALL =============
+              let px = null,
+                py = null;
+
+              try {
+                // ensure rings are valid arrays
+                if (
+                  !rings ||
+                  !Array.isArray(rings) ||
+                  rings.length === 0 ||
+                  rings[0].length < 3
+                ) {
+                  throw new Error("Invalid polygon ring");
+                }
+
+                // run polylabel
+                const lab = polylabel([rings], 0.0005);
+
+                // validate result
+                if (
+                  !Array.isArray(lab) ||
+                  lab.length !== 2 ||
+                  isNaN(lab[0]) ||
+                  isNaN(lab[1])
+                ) {
+                  throw new Error("Polylabel returned invalid values");
+                }
+
+                px = lab[0];
+                py = lab[1];
+              } catch (err) {
+                console.warn(
+                  "Polylabel failed for state:",
+                  stateName,
+                  "— Using centroid fallback.",
+                  err
+                );
+
+                // fallback to Leaflet centroid
+                const fallback = layer.getBounds().getCenter();
+                px = fallback.lng;
+                py = fallback.lat;
+              }
+
+              // ALWAYS VALID LAT/LNG
+              const candidateLatLng = L.latLng(py, px);
+
+              // Collision avoidance - bounding box checks in pixel space
+              const maxAttempts = 6;
+              let placed = false;
+              let attempt = 0;
+              const placedBoxes = (window._placedLabelBoxes =
+                window._placedLabelBoxes || []);
+
+              while (!placed && attempt < maxAttempts) {
+                // project candidate to layer point
+                const pt = map.latLngToLayerPoint(candidateLatLng);
+                // get approximate bbox for label (in px)
+                const labelW = Math.min(
+                  220,
+                  Math.max(60, (stateName.length || 6) * 7)
+                );
+                const labelH = 24;
+                const bbox = {
+                  left: pt.x - labelW / 2,
+                  right: pt.x + labelW / 2,
+                  top: pt.y - labelH / 2,
+                  bottom: pt.y + labelH / 2,
+                };
+
+                // check overlaps
+                let overlaps = false;
+                for (const b of placedBoxes) {
+                  if (
+                    !(
+                      bbox.right < b.left ||
+                      bbox.left > b.right ||
+                      bbox.bottom < b.top ||
+                      bbox.top > b.bottom
+                    )
+                  ) {
+                    overlaps = true;
+                    break;
+                  }
+                }
+                if (!overlaps) {
+                  // place
+                  placedBoxes.push(bbox);
+                  placed = true;
+                  placeMarkerLabelAt(
+                    [candidateLatLng.lat, candidateLatLng.lng],
+                    stateName,
+                    jobDetails,
+                    l,
+                    {
+                      curved: shouldUseCurvedLabel(l),
+                      labelPoint: candidateLatLng,
+                    }
+                  );
+                  break;
+                }
+                // else nudge point slightly towards centroid of polygon
+                const centerPt = l.getBounds().getCenter();
+                const latShift =
+                  (centerPt.lat - candidateLatLng.lat) * (0.15 * (attempt + 1));
+                const lngShift =
+                  (centerPt.lng - candidateLatLng.lng) * (0.15 * (attempt + 1));
+                candidateLatLng.lat += latShift;
+                candidateLatLng.lng += lngShift;
+                attempt++;
+              }
+
+              if (!placed) {
+                // last resort: place at centroid
+                const ctr = l.getBounds().getCenter();
+                placeMarkerLabelAt(
+                  [ctr.lat, ctr.lng],
+                  stateName,
+                  jobDetails,
+                  l,
+                  { curved: false }
+                );
+              }
+            },
+          }).addTo(polygonsLayer);
+
+          // add polygons layer & markers layer to map (default both)
+          if (!map.hasLayer(polygonsLayer)) map.addLayer(polygonsLayer);
+          if (!map.hasLayer(markersLayer)) map.addLayer(markersLayer);
+        }
+
+        // heuristic: when polygon bbox area is large -> curved label better
+        function shouldUseCurvedLabel(layer) {
+          const b = layer.getBounds();
+          const area =
+            Math.abs(b.getNorth() - b.getSouth()) *
+            Math.abs(b.getEast() - b.getWest());
+          return area > 0.35; // tune threshold
+        }
+
+        // place marker+label at latlng. options: {curved:bool, labelPoint:LatLng}
+        function placeMarkerLabelAt(
+          latlngArr,
+          stateName,
+          jobDetails,
+          layer,
+          opt = {}
+        ) {
+          const [lat, lng] = latlngArr;
+          const count = (jobDetails.jobs || []).length;
+          const hasNew = (jobDetails.jobs || []).some(isJobNew);
+          const color = densityColor(count);
+          // marker HTML
+          const newBadge = hasNew
+            ? `<div class="marker-new-badge">NEW</div>`
+            : "";
+          const markerHtml = `<div class="custom-marker" style="background:${color}">${escapeHtml(
+            String(count || 0)
+          )}${newBadge}</div>`;
+          const labelHtml = `<div class="state-center-label ${
+            count <= 1 && stateName.length > 12 ? "compact" : ""
+          }">${escapeHtml(stateName)}</div>`;
+
+          // create marker with both markerHtml and label appended via divIcon (we keep one DOM per state for simplicity)
+          const combinedHtml = `<div style="position:relative;display:inline-block">${markerHtml}${labelHtml}</div>`;
+
+          const marker = L.marker([lat, lng], {
+            icon: L.divIcon({
+              html: combinedHtml,
+              className: "",
+              iconSize: [1, 1],
+              popupAnchor: [0, -18],
+            }),
+          }).addTo(markersLayer);
+
+          // store ref
+          stateMarkers[stateName] = marker;
+          stateLabels[stateName] = { marker: marker, layer: layer };
+
+          // animate pulse if new
+          if (hasNew) {
+            marker.on("add", () => {
+              const el = marker.getElement();
+              if (el) {
+                const cm = el.querySelector(".custom-marker");
+                if (cm) {
+                  cm.style.transition = "transform .18s ease";
+                  cm.classList.add("pulse");
+                  setTimeout(() => cm.classList.remove("pulse"), 3000);
+                }
+              }
+            });
+          }
+
+          // click behavior: bounce + popup
+          marker.on("click", () => {
+            const el = marker.getElement();
+            if (el) {
+              const cm = el.querySelector(".custom-marker");
+              if (cm) {
+                cm.classList.remove("marker-bounce");
+                void cm.offsetWidth;
+                cm.classList.add("marker-bounce");
+              }
+            }
+            const html = createPopupContent(stateName, jobDetails, 1);
+            marker.bindPopup(html, { maxWidth: 460 }).openPopup();
+            popupState.popup = marker.getPopup();
+            popupState.stateName = stateName;
+            popupState.jobDetails = jobDetails;
+          });
+
+          // if curved label requested, render curved text along boundary using SVG path
+          if (opt.curved && opt.labelPoint) {
+            try {
+              renderCurvedLabelForFeature(layer, stateName, marker);
+            } catch (e) {
+              console.warn("curved label failed", e);
+            }
+          }
+        }
+
+        // render curved label: project polygon outer ring to screen coords, create an SVG path and textPath
+        function renderCurvedLabelForFeature(layer, stateName, markerRef) {
+          const svg = document.getElementById("labelSvg");
+          const mapSize = map.getSize();
+          svg.setAttribute("width", mapSize.x);
+          svg.setAttribute("height", mapSize.y);
+
+          // find longest outer ring path (approx)
+          const geom = layer.feature.geometry;
+          let coords = [];
+          if (geom.type === "Polygon") coords = geom.coordinates[0];
+          else if (geom.type === "MultiPolygon") {
+            let best = geom.coordinates[0];
+            for (const poly of geom.coordinates) {
+              if (poly[0].length > best[0].length) best = poly;
+            }
+            coords = best[0];
+          }
+          // convert to layer points
+          const pts = coords.map((c) => map.latLngToLayerPoint([c[1], c[0]]));
+          if (pts.length < 2) return;
+
+          // simplify path for performance (pick every Nth point)
+          const step = Math.max(1, Math.floor(pts.length / 120));
+          const sampled = pts.filter((_, i) => i % step === 0);
+
+          // build d string
+          const d = sampled
+            .map((p, i) => (i === 0 ? `M ${p.x} ${p.y}` : ` L ${p.x} ${p.y}`))
+            .join(" ");
+
+          // create unique id
+          const id =
+            "path-" +
+            stateName.replace(/\s+/g, "_").replace(/[^\w_]/g, "") +
+            "_" +
+            Math.floor(Math.random() * 100000);
+
+          // remove existing if any for this state
+          const existing = svg.querySelector(`#${id}`);
+          if (existing) existing.remove();
+
+          // create path and textPath
+          const path = document.createElementNS(
+            "http://www.w3.org/2000/svg",
+            "path"
+          );
+          path.setAttribute("d", d);
+          path.setAttribute("id", id);
+          path.setAttribute("class", "label-path");
+          path.setAttribute("fill", "none");
+
+          const text = document.createElementNS(
+            "http://www.w3.org/2000/svg",
+            "text"
+          );
+          text.setAttribute("class", "curved-label-text");
+          text.setAttribute("font-size", "14");
+          text.setAttribute("fill", "#000");
+
+          const textPath = document.createElementNS(
+            "http://www.w3.org/2000/svg",
+            "textPath"
+          );
+          textPath.setAttributeNS(
+            "http://www.w3.org/1999/xlink",
+            "xlink:href",
+            "#" + id
+          );
+          // place text at middle of path
+          textPath.setAttribute("startOffset", "50%");
+          textPath.setAttribute("text-anchor", "middle");
+          textPath.textContent = stateName;
+
+          text.appendChild(textPath);
+          svg.appendChild(path);
+          svg.appendChild(text);
+
+          // leader line if label path is outside of where marker sits (rare)
+          // we skip leader lines for now; can add if needed
+        }
+
+        // colorFromString deterministic HSL
+        function colorFromString(s) {
+          let h = 0;
+          for (let i = 0; i < s.length; i++)
+            h = (Math.imul(31, h) + s.charCodeAt(i)) | 0;
+          return `hsl(${Math.abs(h) % 360},60%,55%)`;
+        }
+
+        // small helper to get job details
+        function getJobDetails(state) {
+          const arr = jobData[state];
+          if (!arr) return { jobs: [] };
+          if (arr.length === 1 && arr[0] === "noData") return { jobs: [] };
+          return { jobs: arr };
+        }
+
+        // ---------- utility containers ----------
+        // keep track of placed label bboxes to avoid overlap
+        window._placedLabelBoxes = window._placedLabelBoxes || [];
+
+        // ---------- load everything ----------
+        async function init() {
+          try {
+            const base =
+              `${location.protocol}//${location.host}${location.pathname}`.replace(
+                /\/$/,
+                ""
+              );
+            const jresp = await fetch(base + "/src/jbl.json", {
+              cache: "no-cache",
+            });
+            if (!jresp.ok) throw new Error("jobs.json load failed");
+            jobData = await jresp.json();
+            document.getElementById("version").textContent =
+              "Version " + (jobData.dbOn || "N/A");
+            document.getElementById("version").style.display = "block";
+            const gres = await fetch(base + "/src/ind.geojson", {
+              cache: "no-cache",
+            });
+            if (!gres.ok) throw new Error("geojson load failed");
+            const geo = await gres.json();
+            addGeoJson(geo);
+          } catch (e) {
+            console.error(e);
+            document.getElementById(
+              "loading"
+            ).innerHTML = `<div style="color:#fdd">Error loading data</div>`;
+          } finally {
+            document.getElementById("map").style.visibility = "visible";
+            document.getElementById("loading").style.display = "none";
+          }
+        }
+
+        /* ---------- search helper (using stateMarkers mapping) ---------- */
+        function findStateByQuery(q) {
+          q = q.trim().toLowerCase();
+          for (const k of Object.keys(jobData || {})) {
+            if (k.toLowerCase().includes(q)) return k;
+          }
+          return null;
+        }
+
+        // Hook search button
+        document.getElementById("searchBtn").addEventListener("click", () => {
+          const q = document.getElementById("searchInput").value || "";
+          const found = findStateByQuery(q);
+          if (!found) {
+            alert("Not found: " + q);
+            return;
+          }
+          const m = stateMarkers[found];
+          if (m) {
+            map.setView(m.getLatLng(), Math.max(map.getZoom(), 6));
+            m.fire("click");
+          } else if (statePolygons[found]) {
+            map.fitBounds(statePolygons[found].getBounds(), { maxZoom: 7 });
+            statePolygons[found].fire("click");
+          }
+        });
+
+        // map resize: update svg overlay size
+        map.on("resize", () => {
+          const s = map.getSize();
+          const svg = document.getElementById("labelSvg");
+          if (svg) {
+            svg.setAttribute("width", s.x);
+            svg.setAttribute("height", s.y);
+          }
+        });
+
+        // finally start
+        init();
+      })();
     </script>
-
-    <!-- Option 1: Bootstrap Bundle with Popper -->
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"
-        integrity="sha384-ka7Sk0Gln4gmtz2MlQnikT1wXgYsOg+OMhuP+IlRH9sENBO0LRn5q+8nbTov4+1p"
-        crossorigin="anonymous"></script>
-
-</body>
-
+  </body>
 </html>
